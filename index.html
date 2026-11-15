@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Roda Cromática</title>
+<script>if(!/\/$|\.html$/.test(location.pathname))location.replace(location.pathname+"/"+location.search+location.hash);</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Roda Cromática">
+<meta name="theme-color" content="#f3f1ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141317" media="(prefers-color-scheme: dark)">
+<style>
+@font-face{font-family:"Unbounded";font-weight:500;font-style:normal;font-display:swap;src:url(fonts/unbounded-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Unbounded";font-weight:700;font-style:normal;font-display:swap;src:url(fonts/unbounded-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Figtree";font-weight:400;font-style:normal;font-display:swap;src:url(fonts/figtree-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Figtree";font-weight:600;font-style:normal;font-display:swap;src:url(fonts/figtree-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:500;font-style:normal;font-display:swap;src:url(fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2")}
+html{-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+#toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:600;font-size:.9rem;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+
+/* Layout: roda à esquerda, receita à direita no iPad/PC; uma coluna no celular */
+:root{
+  --bg:#f3f1ee; --surface:#ffffff; --fg:#1b1a1f; --muted:#6c6873; --line:#dedad5; --accent:#b0283f;
+  --display:"Unbounded",system-ui,sans-serif; --body:"Figtree",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141317; --surface:#1e1c22; --fg:#eeebf0; --muted:#9a95a1; --line:#2e2b33; --accent:#e5566e; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141317; --surface:#1e1c22; --fg:#eeebf0; --muted:#9a95a1; --line:#2e2b33; --accent:#e5566e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:20px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(1.4rem,4vw,2rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.main{display:grid;gap:20px;grid-template-columns:1fr}
+@media (min-width:760px){.main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:16px;min-width:0}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.wheel-box{position:relative;width:100%;max-width:440px;margin:0 auto;aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none}
+#wheel{width:100%;height:100%;display:block;border-radius:50%;cursor:crosshair}
+#wheel:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+.paint{position:relative;overflow:hidden}
+.paint>canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#knob{overflow:hidden;position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 3px 10px rgba(0,0,0,.35);pointer-events:none;transition:transform .12s}
+.wheel-box.drag #knob{transform:scale(1.25)}
+.pin{position:absolute;transform:translate(-50%,-50%);font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg);background:var(--surface);padding:2px 7px;border-radius:99px;box-shadow:0 1px 4px rgba(0,0,0,.25);pointer-events:none}
+.slider{display:grid;gap:6px}
+.slider input{width:100%;accent-color:var(--accent)}
+.slider .tlab{font-size:.75rem}
+.match{font-size:.85rem;color:var(--muted)}
+details.inks summary{cursor:pointer;font-weight:600}
+.inkset{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.inkset label{display:grid;justify-items:center;gap:4px;font-size:.8rem;color:var(--muted)}
+.big{width:96px;height:96px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.swatch{width:72px;height:72px;border-radius:50%;border:1px solid var(--line);flex:none}
+.hex{font-family:var(--mono);font-size:1.1rem}
+input[type=color]{width:44px;height:44px;border:1px solid var(--line);border-radius:10px;padding:2px;background:var(--surface)}
+.caps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cap{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:10px 6px;font:inherit;cursor:pointer;display:grid;justify-items:center;gap:4px}
+.cap[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cap i{display:block;border-radius:50%;border:2px solid currentColor;opacity:.7}
+.cap small{color:var(--muted);font-size:.75rem}
+.drops-in{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.9rem}
+.drops-in input{width:70px;font:inherit;font-family:var(--mono);padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+ul.recipe{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+ul.recipe li{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;min-width:0}
+.ink{display:flex;align-items:center;gap:8px;font-weight:600}
+.dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(128,128,128,.5);flex:none}
+.dots{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+.dots .dot{width:11px;height:11px}
+.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.n em{font-style:normal;color:var(--muted);font-size:.8rem}
+.tones{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.tones button{aspect-ratio:1;max-width:100%;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:0}
+.tones button.sel{outline:3px solid var(--fg);outline-offset:1px}
+.tlab{display:flex;justify-content:space-between;color:var(--muted);font-size:.75rem}
+.tip{font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:0}
+button:focus-visible,input:focus-visible,#wheel path:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.pair{display:flex;gap:16px;flex-wrap:wrap}
+.pair .swatch{width:64px;height:64px}
+.adj{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.adj button,.tools button{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:10px 4px;font:inherit;font-weight:600;cursor:pointer}
+.adj button small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.tools button{padding:8px 12px;font-weight:400}
+.tools button:disabled{opacity:.4;cursor:default}
+.total{font-family:var(--mono);font-size:.9rem;color:var(--muted)}
+.total.over{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Roda Cromática</h1>
+    <p>Arraste na roda para escolher a cor. Tudo é calculado como mistura real de pigmento, a partir das suas tintas, sem preto.</p>
+  </header>
+
+  <div class="main">
+    <section class="panel">
+      <div class="wheel-box" id="box">
+        <canvas id="wheel" width="600" height="600" tabindex="0" aria-label="Roda cromática: arraste ou use as setas"></canvas>
+        <div id="knob"></div>
+      </div>
+      <div class="slider">
+        <label class="label" for="dark">Escurecer com a complementar</label>
+        <input type="range" id="dark" min="0" max="60" value="0">
+        <div class="tlab"><span>cor viva</span><span>mais fechada</span></div>
+      </div>
+      <div class="row">
+        <input type="color" id="pick" value="#c99a2e" aria-label="Cor de referência">
+        <div><div class="label">Chegar numa cor de referência</div><div class="match" id="match">Escolha uma cor e o app acha a mistura mais próxima.</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="row">
+        <div class="swatch big" id="sw"></div>
+        <div><div class="label">Resultado da receita</div><div class="hex" id="hex"></div></div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:8px">Tamanho do batoque</div>
+        <div class="caps" id="caps"></div>
+        <label class="drops-in" style="margin-top:10px">Gotas que cabem neste batoque:
+          <input type="number" id="drops" min="2" max="80" inputmode="numeric"></label>
+      </div>
+
+      <div>
+        <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="label">Receita</span><span class="total" id="total"></span></div>
+        <ul class="recipe" id="recipe"></ul>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:8px">Ajustar gota a gota</div>
+        <div class="adj">
+          <button id="b-quente">+ quente<small id="s-quente"></small></button>
+          <button id="b-frio">+ frio<small>azul</small></button>
+          <button id="b-claro">+ claro<small>branco</small></button>
+          <button id="b-escuro">+ escuro<small id="s-escuro"></small></button>
+        </div>
+        <div class="tools" style="margin-top:8px">
+          <button id="undo">Desfazer</button>
+          <button id="reset">Voltar à receita</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:8px">Tons da cor</div>
+        <div class="tones" id="tones"></div>
+        <div class="tlab"><span>+ branco</span><span>+ complementar</span></div>
+      </div>
+
+      <details class="inks">
+        <summary>Minhas tintas</summary>
+        <p class="match" style="margin:8px 0 0">Ajuste cada tinta para o tom real do seu frasco (compare com uma gota no papel branco). A roda e as receitas se recalculam.</p>
+        <div class="inkset" id="inkset"></div>
+        <div class="tools" style="margin-top:8px"><button id="inkreset">Voltar às tintas padrão</button></div>
+      </details>
+
+      <p class="tip">Prévia por modelo físico de pigmento (Kubelka-Munk), mas cada marca tem força própria: teste na pele sintética antes. Sem preto, os tons mais escuros param num marrom ou violeta profundo. “Um toque” = ponta da agulha.</p>
+    </section>
+  </div>
+</div>
+
+<script src="spectral.min.js"></script>
+<script>
+const PR=["vermelho","amarelo","azul"],KEYS=["vermelho","amarelo","azul","branco"];
+const DEF_INKS={vermelho:"#d0102a",amarelo:"#ffd200",azul:"#1c3f94",branco:"#f7f5f0"};
+const CAPS=[{id:"P",nome:"Pequeno",num:"#9",px:14,gotas:5},{id:"M",nome:"Médio",num:"#12",px:20,gotas:10},{id:"G",nome:"Grande",num:"#16",px:26,gotas:20}];
+const nome=k=>k[0].toUpperCase()+k.slice(1);
+// pinta a cor num canvas: o modo escuro forçado do Android escurece fundos CSS, mas não canvas
+function paint(el,hex){el.classList.add("paint");el.style.background=hex;let c=el.querySelector(":scope>canvas");
+  if(!c){c=document.createElement("canvas");c.width=c.height=8;el.prepend(c);}const g=c.getContext("2d");g.fillStyle=hex;g.fillRect(0,0,8,8);}
+
+let state={inks:{...DEF_INKS},cap:"M",gotas:{},p:{theta:30,w:.12,d:.1}};
+try{const s=JSON.parse(localStorage.getItem("roda-tattoo-v3")||"null");if(s)state={...state,...s,inks:{...DEF_INKS,...(s.inks||{})}};}catch(e){}
+const save=()=>{try{localStorage.setItem("roda-tattoo-v3",JSON.stringify(state));}catch(e){}};
+const capDrops=()=>state.gotas[state.cap]??CAPS.find(c=>c.id===state.cap).gotas;
+
+let INK={};const loadInks=()=>KEYS.forEach(k=>INK[k]=new spectral.Color(state.inks[k]));loadInks();
+
+// mistura física das tintas em quantidades relativas
+function mixAmounts(a){const parts=KEYS.filter(k=>a[k]>0).map(k=>[INK[k],a[k]]);
+  if(!parts.length)return new spectral.Color("#ffffff");return parts.length===1?parts[0][0]:spectral.mix(...parts);}
+// parâmetros da roda -> quantidades: 2 primárias vizinhas, complementar (3ª primária), branco
+function amounts({theta,w,d}){const i=Math.floor(theta/120)%3,t=(theta%120)/120,c=1-w,a={vermelho:0,amarelo:0,azul:0,branco:w};
+  a[PR[i]]+=(1-t)*c;a[PR[(i+1)%3]]+=t*c;a[PR[(i+2)%3]]+=d*c;return a;}
+// distribui N gotas (maior resto); quantidades pequenas viram "um toque" (0,25)
+function toDrops(a,N){const sum=KEYS.reduce((s,k)=>s+a[k],0)||1,raw=KEYS.map(k=>a[k]/sum*N),fl=raw.map(Math.floor);
+  let left=N-fl.reduce((x,y)=>x+y,0);KEYS.map((k,i)=>[raw[i]-fl[i],i]).sort((x,y)=>y[0]-x[0]).forEach(([,i])=>{if(left>0){fl[i]++;left--;}});
+  const o={};KEYS.forEach((k,i)=>o[k]=fl[i]||(a[k]/sum>0.02?0.25:0));return o;}
+
+// ---------- roda ----------
+const cv=document.getElementById("wheel"),ctx=cv.getContext("2d"),box=document.getElementById("box"),knob=document.getElementById("knob");
+const CX=300,R=252,RINGS=30;
+let drawTimer=null;
+function drawWheel(){
+  ctx.clearRect(0,0,600,600);const d=state.p.d;
+  ctx.beginPath();ctx.arc(CX,CX,R/RINGS+1,0,Math.PI*2);ctx.fillStyle=mixAmounts(amounts({theta:0,w:1,d})).toString();ctx.fill();
+  for(let ri=1;ri<RINGS;ri++){const r1=R*ri/RINGS,r2=R*(ri+1)/RINGS,w=1-(ri+.5)/RINGS;
+    for(let a=0;a<360;a+=2){const col=mixAmounts(amounts({theta:a+1,w,d})).toString();
+      const a1=(a-90-.6)*Math.PI/180,a2=(a+2-90+.6)*Math.PI/180;
+      ctx.beginPath();ctx.arc(CX,CX,r2+.6,a1,a2);ctx.arc(CX,CX,Math.max(0,r1-.6),a2,a1,true);ctx.closePath();ctx.fillStyle=col;ctx.fill();}}
+}
+function scheduleWheel(){clearTimeout(drawTimer);drawTimer=setTimeout(drawWheel,60);}
+// rótulos das primárias
+PR.forEach((k,i)=>{const el=document.createElement("span");el.className="pin";el.textContent=nome(k);const a=(i*120-90)*Math.PI/180;
+  el.style.left=(50+Math.cos(a)*45.5)+"%";el.style.top=(50+Math.sin(a)*45.5)+"%";box.appendChild(el);});
+
+function placeKnob(){const {theta,w}=state.p,a=(theta-90)*Math.PI/180,r=(1-w)*50*(R/300);
+  knob.style.left=(50+Math.cos(a)*r)+"%";knob.style.top=(50+Math.sin(a)*r)+"%";
+  paint(knob,mixAmounts(amounts(state.p)).toString());}
+function fromPointer(e){const b=cv.getBoundingClientRect(),x=(e.clientX-b.left)/b.width*600-CX,y=(e.clientY-b.top)/b.height*600-CX;
+  let theta=(Math.atan2(y,x)*180/Math.PI+90+360)%360;const w=1-Math.min(1,Math.hypot(x,y)/R);
+  setParams({theta,w});}
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);box.classList.add("drag");fromPointer(e);});
+cv.addEventListener("pointermove",e=>{if(box.classList.contains("drag"))fromPointer(e);});
+["pointerup","pointercancel"].forEach(t=>cv.addEventListener(t,()=>box.classList.remove("drag")));
+cv.addEventListener("keydown",e=>{const p=state.p,m={ArrowLeft:[-3,0],ArrowRight:[3,0],ArrowUp:[0,-.03],ArrowDown:[0,.03]}[e.key];
+  if(m){e.preventDefault();setParams({theta:(p.theta+m[0]+360)%360,w:Math.min(1,Math.max(0,p.w+m[1]))});}});
+document.getElementById("dark").addEventListener("input",e=>{setParams({d:e.target.value/100});scheduleWheel();});
+
+function setParams(p){Object.assign(state.p,p);save();newRecipe();render();}
+
+// ---------- receita e ajustes ----------
+let counts={},history=[];
+function newRecipe(){counts=toDrops(amounts(state.p),capDrops());history=[];}
+function warmInk(){return counts.vermelho+counts.amarelo>0?(counts.vermelho>=counts.amarelo?"vermelho":"amarelo"):"vermelho";}
+function compInks(){const m=Math.min(...PR.map(k=>counts[k]));return PR.filter(k=>counts[k]===m);}
+function add(inks){history.push({...counts});inks.forEach(k=>counts[k]=Math.floor(counts[k])+1);renderRecipe();}
+document.getElementById("b-quente").onclick=()=>add([warmInk()]);
+document.getElementById("b-frio").onclick=()=>add(["azul"]);
+document.getElementById("b-claro").onclick=()=>add(["branco"]);
+document.getElementById("b-escuro").onclick=()=>add(compInks());
+document.getElementById("undo").onclick=()=>{if(history.length){counts=history.pop();renderRecipe();}};
+document.getElementById("reset").onclick=()=>{newRecipe();renderRecipe();};
+
+const capsEl=document.getElementById("caps");
+CAPS.forEach(c=>{const b=document.createElement("button");b.className="cap";b.dataset.id=c.id;
+  b.innerHTML=`<i style="width:${c.px}px;height:${c.px}px"></i><span>${c.nome}</span><small>${c.num}</small>`;
+  b.onclick=()=>{state.cap=c.id;save();newRecipe();render();};capsEl.appendChild(b);});
+document.getElementById("drops").addEventListener("input",e=>{const v=parseInt(e.target.value,10);if(v>=2&&v<=80){state.gotas[state.cap]=v;save();newRecipe();renderRecipe();}});
+
+function renderRecipe(){
+  const ul=document.getElementById("recipe");ul.innerHTML="";
+  KEYS.filter(k=>counts[k]>0).forEach(k=>{const li=document.createElement("li"),col=state.inks[k],n=Math.floor(counts[k]);
+    li.innerHTML=`<span class="ink"><span class="dot paint" data-c="${col}"></span>${nome(k)}</span>
+      <span class="dots">${Array.from({length:n},()=>`<span class="dot paint" data-c="${col}"></span>`).join("")}</span>
+      <span class="n">${n?`${n} <em>${n===1?"gota":"gotas"}</em>`:"<em>um toque</em>"}</span>`;ul.appendChild(li);});
+  ul.querySelectorAll(".paint").forEach(e=>paint(e,e.dataset.c));
+  const tot=KEYS.reduce((a,k)=>a+Math.floor(counts[k]),0),cap=capDrops(),t=document.getElementById("total");
+  t.textContent=`${tot} / ${cap} gotas`+(tot>cap?" · passa do batoque":"");t.classList.toggle("over",tot>cap);
+  const hx=mixAmounts(counts).toString();paint(document.getElementById("sw"),hx);document.getElementById("hex").textContent=hx.toUpperCase();
+  document.getElementById("s-quente").textContent=nome(warmInk());
+  document.getElementById("s-escuro").textContent=compInks().map(nome).join(" + ");
+  document.getElementById("undo").disabled=!history.length;
+}
+
+// ---------- cor de referência: busca a mistura mais próxima ----------
+function dist(a,b){const x=a.OKLab,y=b.OKLab;return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2]);}
+function bestMatch(target){let best=null;
+  const test=(theta,w,d)=>{theta=(theta+360)%360;w=Math.min(.95,Math.max(0,w));d=Math.min(.6,Math.max(0,d));
+    const e=dist(mixAmounts(amounts({theta,w,d})),target);if(!best||e<best.e)best={theta,w,d,e};};
+  for(let th=0;th<360;th+=6)for(let w=0;w<=.9;w+=.1)for(let d=0;d<=.6;d+=.1)test(th,w,d);
+  const b=best;for(let i=-4;i<=4;i++)for(let j=-4;j<=4;j++)for(let k=-4;k<=4;k++)test(b.theta+i*1.5,b.w+j*.025,b.d+k*.025);
+  return best;}
+document.getElementById("pick").addEventListener("change",e=>{
+  const m=bestMatch(new spectral.Color(e.target.value)),q=m.e<.03?"Mistura muito próxima da referência.":m.e<.07?"Mistura próxima; ajuste fino gota a gota.":"Não dá para chegar exatamente só com essas tintas (precisaria de um pigmento mais vivo). Esta é a mais próxima.";
+  document.getElementById("match").textContent=q;document.getElementById("dark").value=Math.round(m.d*100);
+  setParams({theta:m.theta,w:m.w,d:m.d});drawWheel();});
+
+// ---------- minhas tintas ----------
+const inkset=document.getElementById("inkset");
+function buildInks(){inkset.innerHTML="";KEYS.forEach(k=>{const l=document.createElement("label");
+  l.innerHTML=`<input type="color" id="ink-${k}" value="${state.inks[k]}">${nome(k)}`;
+  l.querySelector("input").addEventListener("change",e=>{state.inks[k]=e.target.value;loadInks();save();newRecipe();render();drawWheel();});inkset.appendChild(l);});}
+document.getElementById("inkreset").onclick=()=>{state.inks={...DEF_INKS};loadInks();save();buildInks();newRecipe();render();drawWheel();};
+
+// ---------- tons ----------
+function renderTones(){const p=state.p,t=document.getElementById("tones");t.innerHTML="";
+  const v=[{w:Math.min(.9,p.w+.45)},{w:Math.min(.9,p.w+.3)},{w:Math.min(.9,p.w+.15)},{},{d:Math.min(.6,p.d+.12)},{d:Math.min(.6,p.d+.24)},{d:Math.min(.6,p.d+.36)}];
+  v.forEach((o,i)=>{const q={...p,...o},b=document.createElement("button");paint(b,mixAmounts(amounts(q)).toString());
+    b.setAttribute("aria-label",i<3?"mais claro":i>3?"mais escuro":"cor atual");if(i===3)b.className="sel";
+    b.onclick=()=>{if(o.d!==undefined){document.getElementById("dark").value=Math.round(q.d*100);scheduleWheel();}setParams(q);};t.appendChild(b);});}
+
+function render(){placeKnob();capsEl.querySelectorAll(".cap").forEach(b=>b.setAttribute("aria-pressed",b.dataset.id===state.cap));
+  document.getElementById("drops").value=capDrops();renderRecipe();renderTones();}
+
+document.getElementById("dark").value=Math.round(state.p.d*100);
+buildInks();newRecipe();render();drawWheel();
+</script>
+<div id="toast" hidden></div>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.addEventListener("message",e=>{
+    if(e.data==="pronto"){let ok=false;try{ok=localStorage.getItem("roda-offline")==="1";localStorage.setItem("roda-offline","1");}catch(x){}
+      if(!ok){const t=document.getElementById("toast");t.textContent="Pronto: o app agora funciona offline";t.hidden=false;setTimeout(()=>t.hidden=true,5000);}}});
+}
+</script>
+</body>
+</html>
